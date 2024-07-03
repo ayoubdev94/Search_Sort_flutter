@@ -9,18 +9,23 @@ class SearchSortBloc extends Bloc<SearchSortEvent, SearchSortState> {
 
   SearchSortBloc(this.allItems)
       : super(SearchSortState(
-            items: allItems, query: '', criteria: SortCriteria.name)) {
+            items: allItems,
+            query: '',
+            criteria: SortCriteria.nameAsc,
+            selectedCategory: 'All',
+            allCategories: _extractCategories(allItems))) {
     on<SearchQueryChanged>(_onSearchQueryChanged);
     on<SortCriteriaChanged>(_onSortCriteriaChanged);
+    on<CategoryChanged>(_onCategoryChanged);
+  }
+
+  static List<String> _extractCategories(List<Item> items) {
+    return ['All'] + items.map((item) => item.category).toSet().toList();
   }
 
   void _onSearchQueryChanged(
       SearchQueryChanged event, Emitter<SearchSortState> emit) {
-    final filteredItems = allItems
-        .where((item) =>
-            item.name.toLowerCase().contains(event.query.toLowerCase()) ||
-            item.price.toString().contains(event.query.toString()))
-        .toList();
+    final filteredItems = _filterItems(event.query, state.selectedCategory);
     emit(state.copyWith(items: filteredItems, query: event.query));
   }
 
@@ -29,16 +34,35 @@ class SearchSortBloc extends Bloc<SearchSortEvent, SearchSortState> {
     final sortedItems = List<Item>.from(state.items);
     sortedItems.sort((firstItem, secondItem) {
       switch (event.criteria) {
-        case SortCriteria.name:
+        case SortCriteria.nameAsc:
           return firstItem.name.compareTo(secondItem.name);
-        /*  case SortCriteria.date:
-          return firstItem.date.compareTo(secondItem.date); */
-        case SortCriteria.price:
+        case SortCriteria.nameDesc:
+          return secondItem.name.compareTo(firstItem.name);
+        case SortCriteria.priceAsc:
           return firstItem.price.compareTo(secondItem.price);
+        case SortCriteria.priceDesc:
+          return secondItem.price.compareTo(firstItem.price);
         default:
           return 0;
       }
     });
     emit(state.copyWith(items: sortedItems, criteria: event.criteria));
+  }
+
+  void _onCategoryChanged(
+      CategoryChanged event, Emitter<SearchSortState> emit) {
+    final filteredItems = _filterItems(state.query, event.category);
+    emit(
+        state.copyWith(items: filteredItems, selectedCategory: event.category));
+  }
+
+  List<Item> _filterItems(String query, String category) {
+    return allItems.where((item) {
+      final matchesQuery =
+          item.name.toLowerCase().contains(query.toLowerCase()) ||
+              item.price.toString().contains(query);
+      final matchesCategory = category == 'All' || item.category == category;
+      return matchesQuery && matchesCategory;
+    }).toList();
   }
 }

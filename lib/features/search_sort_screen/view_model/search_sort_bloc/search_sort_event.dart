@@ -12,4 +12,9 @@ class SortCriteriaChanged extends SearchSortEvent {
   SortCriteriaChanged(this.criteria);
 }
 
-enum SortCriteria { name, price }
+class CategoryChanged extends SearchSortEvent {
+  final String category;
+  CategoryChanged(this.category);
+}
+
+enum SortCriteria { nameAsc, nameDesc, priceAsc, priceDesc }
